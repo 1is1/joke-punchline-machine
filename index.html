@@ -257,9 +257,30 @@
       padding: .25rem .5rem;
     }
     .inline-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .back-to-overview {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #ffffff;
+      border: 1px solid rgba(15,23,42,.05);
+      border-radius: 999px;
+      padding: .35rem .75rem .4rem;
+      font-size: .63rem;
+      color: #0f172a;
+      text-decoration: none;
+      display: inline-flex;
+      gap: .25rem;
+      align-items: center;
+      box-shadow: 0 10px 28px rgba(15,23,42,.08);
+    }
+    .back-to-overview:hover {
+      background: #f8fafc;
+    }
   </style>
 </head>
 <body>
+  <a href="https://1is1.github.io/joke-tools/" class="back-to-overview">← Til oversigt</a>
+
   <div class="sidebar">
     <h2>Punchline-maskine</h2>
     <div>
