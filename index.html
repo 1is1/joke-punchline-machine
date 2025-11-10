@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <title>Joke Punchline Machine</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --sidebar-width: 320px; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      height: 100vh;
+      background: #fff;
+    }
+    .sidebar {
+      width: var(--sidebar-width);
+      border-right: 1px solid #ddd;
+      padding: 1rem;
+      background: #f8f8f8;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow-y: auto;
+    }
+    .sidebar h2 { margin: 0; font-size: 1.05rem; }
+    .section-title {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #4b5563;
+      margin-bottom: .35rem;
+    }
+    .punch-list-side {
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 6px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    .side-item {
+      padding: .35rem .45rem;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      position: relative;
+    }
+    .side-item:last-child { border-bottom: none; }
+    .side-item-title {
+      font-size: .7rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .side-item-line {
+      font-size: .65rem;
+      color: #6b7280;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .side-item-delete {
+      position: absolute;
+      right: .4rem;
+      top: .3rem;
+      border: none;
+      background: none;
+      color: #b91c1c;
+      font-size: .8rem;
+      cursor: pointer;
+    }
+    .suggestions {
+      background: #f1f2f3;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: .5rem .6rem;
+      font-size: .72rem;
+      color: #4b5563;
+      line-height: 1.35;
+    }
+    .suggestions-title {
+      font-weight: 600;
+      margin-bottom: .25rem;
+      font-size: .75rem;
+    }
+    .delete-all-btn {
+      background: #fff;
+      border: 1px solid #f0b4b4;
+      color: #b91c1c;
+      font-size: .7rem;
+      padding: .25rem .4rem;
+      border-radius: 4px;
+      margin-top: .25rem;
+      cursor: pointer;
+    }
+    button {
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: .35rem .7rem;
+      font-size: .7rem;
+    }
+    .primary {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+    }
+    .export-area {
+      width: 100%;
+      min-height: 100px;
+      font-size: .7rem;
+      display: none;
+    }
+    .main {
+      flex: 1;
+      padding: 1rem 1.2rem 1.5rem;
+      overflow-y: auto;
+      background: #fff;
+    }
+    .flow-container {
+      max-width: 720px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: .9rem;
+    }
+    .step-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      background: #fff;
+      padding: .75rem .8rem .8rem;
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+    .step-header {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+    }
+    .step-number {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: #2563eb;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .7rem;
+      font-weight: 600;
+    }
+    .step-title { font-size: .8rem; font-weight: 600; }
+    input[type="text"], textarea, select {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: .4rem .45rem;
+      font-size: .8rem;
+    }
+    textarea { resize: vertical; min-height: 55px; }
+    .small-label { font-size: .65rem; color: #6b7280; }
+    .inline-list { display: flex; flex-direction: column; gap: .3rem; }
+    .inline-row { display: flex; gap: .35rem; align-items: center; }
+    .inline-row input[type="text"] { flex: 1; }
+    .remove-btn {
+      border: none;
+      background: #fee2e2;
+      color: #b91c1c;
+      border-radius: 4px;
+      font-size: .65rem;
+      padding: .2rem .4rem;
+      cursor: pointer;
+    }
+    .add-btn {
+      border: 1px dashed #ccc;
+      background: #fff;
+      padding: .2rem .4rem;
+      font-size: .65rem;
+      border-radius: 4px;
+      cursor: pointer;
+      align-self: flex-start;
+    }
+    .submit-row { display: flex; gap: .4rem; margin-top: .2rem; }
+    .preview-block {
+      border: 1px dashed #d1d5db;
+      border-radius: 8px;
+      padding: .6rem .7rem .55rem;
+      background: #fafafa;
+      font-size: .73rem;
+      line-height: 1.35;
+    }
+    .preview-block h3 { font-size: .72rem; margin: 0 0 .4rem 0; color: #374151; }
+    .preview-block p { margin: 0; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 10px;
+      max-width: 430px;
+      width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: .9rem 1rem 1rem;
+      box-shadow: 0 15px 35px rgba(0,0,0,.15);
+      font-size: .78rem;
+      line-height: 1.35;
+    }
+    .modal h3 { margin-top: 0; font-size: .9rem; }
+    .modal-row { margin-bottom: .4rem; }
+    .modal-label {
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: #6b7280;
+    }
+    .modal-close {
+      border: none;
+      background: #ef4444;
+      color: white;
+      padding: .35rem .6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .7rem;
+      margin-top: .4rem;
+    }
+    .source-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: .5rem .6rem .55rem;
+      margin-bottom: .5rem;
+      background: #fff;
+    }
+    .source-highlight {
+      background: #e0ecff;
+      border-radius: 4px;
+      padding: .25rem .3rem;
+      display: inline-block;
+      font-weight: 600;
+    }
+    .source-item-title {
+      font-weight: 600;
+      font-size: .75rem;
+      margin-bottom: .25rem;
+    }
+    .source-use-btn {
+      margin-top: .35rem;
+      font-size: .68rem;
+      padding: .25rem .5rem;
+    }
+    .inline-actions { display: flex; gap: .4rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Punchline-maskine</h2>
+    <div>
+      <div class="section-title">Overblik</div>
+      <div id="punchOverview" class="punch-list-side"></div>
+    </div>
+
+    <div>
+      <div class="section-title">Eksporter</div>
+      <button id="exportBtn" type="button">Eksporter alle</button>
+      <textarea id="exportArea" class="export-area"></textarea>
+    </div>
+
+    <div>
+      <div class="section-title">Gode råd</div>
+      <div class="suggestions">
+        <div class="suggestions-title">Tips</div>
+        <ul style="padding-left:1rem; margin:0;">
+          <li>Virkelighed 1 = det du siger.</li>
+          <li>Antagelser = hvad publikum tror.</li>
+          <li>Virkelighed 2 = du gør en af antagelserne forkert.</li>
+        </ul>
+      </div>
+      <span style="font-size:.65rem; display:block; color:#6b7280; margin-top:.2rem;">Data gemmes lokalt i din browser.</span>
+      <button class="delete-all-btn" id="deleteAllBtn">Slet al hukommelse</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="flow-container">
+      <h1 style="font-size:1rem;margin:0 0 .2rem 0;">Ny punchline</h1>
+      <p style="font-size:.7rem;color:#6b7280;margin:0 0 .6rem 0;">Hent en set-up sætning fra sætningsmaskinen eller skriv en selv, lav antagelser omkring virkelighed 1, vælg én at bryde, og skriv punchline.</p>
+
+      <!-- Step 1 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Set-up sætning (virkelighed 1)</div>
+        </div>
+        <input type="text" id="baseSentence" placeholder="fx Jeg hører altid musik, når jeg løber" />
+        <div class="inline-actions">
+          <button id="loadFromSentenceMachineBtn" type="button">Hent set-up fra joke sætningsmaskine</button>
+        </div>
+        <small class="small-label">Dette er den normale virkelighed, som publikum tror på.</small>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">Antagelser omkring virkelighed 1</div>
+        </div>
+        <div id="assumptionsList" class="inline-list"></div>
+        <button id="addAssumptionBtn" class="add-btn" type="button">+ Tilføj antagelse</button>
+        <small class="small-label">Skriv antagelser til den virkelighed der skabes af din sætning.</small>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Vælg antagelse at bryde</div>
+        </div>
+        <select id="assumptionSelect">
+          <option value="">(vælg en af dine antagelser)</option>
+        </select>
+        <small class="small-label">Vælg den mest oplagte eller sjove.</small>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">4</div>
+          <div class="step-title">Virkelighed 2 / brud-forslag</div>
+        </div>
+        <div id="altRealityList" class="inline-list"></div>
+        <button id="addAltRealityBtn" class="add-btn" type="button">+ Tilføj virkelighed 2</button>
+        <small class="small-label">Når du henter fra sentence-maskinen, sætter vi automatisk den negative holdning herind.</small>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">5</div>
+          <div class="step-title">Punchline</div>
+        </div>
+        <textarea id="punchline" placeholder="fx ...men så må de jo spørge pænt, hvis jeg skal skrue ned for soundboksen."></textarea>
+        <small class="small-label">Skriv den bedste måde at afsløre virkelighed 2.</small>
+      </div>
+
+      <div class="step-card">
+        <div class="preview-block" id="previewBlock" style="display:none;"></div>
+        <div class="submit-row">
+          <button id="saveBtn" class="primary" type="button">Gem punchline</button>
+          <button id="clearBtn" type="button">Ryd felter</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: vis punchline -->
+  <div id="viewModalBackdrop" class="modal-backdrop">
+    <div class="modal" id="viewModal">
+      <h3>Punchline-flow</h3>
+      <div id="viewModalContent"></div>
+      <button id="viewModalClose" class="modal-close" type="button">Luk</button>
+    </div>
+  </div>
+
+  <!-- Modal: vælg fra sentence-maskine -->
+  <div id="sourceModalBackdrop" class="modal-backdrop">
+    <div class="modal" id="sourceModal">
+      <h3>Vælg sætning fra sætningsmaskinen</h3>
+      <p style="font-size:.7rem;color:#6b7280;margin-top:0;">Vi henter fra <strong>joke sætningsmaskinen</strong>. Vi bruger “Sætning til scene” som virkelighed 1, og “Negativ holdning” som forslag til virkelighed 2.</p>
+      <div id="sourceList"></div>
+      <button id="sourceModalClose" class="modal-close" type="button">Luk</button>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "joke-punchline-data";
+
+    const baseSentenceEl = document.getElementById('baseSentence');
+    const assumptionsListEl = document.getElementById('assumptionsList');
+    const addAssumptionBtn = document.getElementById('addAssumptionBtn');
+    const assumptionSelectEl = document.getElementById('assumptionSelect');
+    const altRealityListEl = document.getElementById('altRealityList');
+    const addAltRealityBtn = document.getElementById('addAltRealityBtn');
+    const punchlineEl = document.getElementById('punchline');
+
+    const saveBtn = document.getElementById('saveBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const punchOverviewEl = document.getElementById('punchOverview');
+    const exportBtn = document.getElementById('exportBtn');
+    const exportArea = document.getElementById('exportArea');
+    const deleteAllBtn = document.getElementById('deleteAllBtn');
+    const previewBlock = document.getElementById('previewBlock');
+    const loadFromSentenceMachineBtn = document.getElementById('loadFromSentenceMachineBtn');
+
+    const viewModalBackdrop = document.getElementById('viewModalBackdrop');
+    const viewModalContent = document.getElementById('viewModalContent');
+    const viewModalClose = document.getElementById('viewModalClose');
+
+    const sourceModalBackdrop = document.getElementById('sourceModalBackdrop');
+    const sourceListEl = document.getElementById('sourceList');
+    const sourceModalClose = document.getElementById('sourceModalClose');
+
+    let punchlines = loadFromStorage();
+    renderOverview();
+    renderPreview();
+    ensureAtLeastOneAssumption();
+    ensureAtLeastOneAltReality();
+    syncAssumptionSelect();
+
+    baseSentenceEl.addEventListener('input', renderPreview);
+    punchlineEl.addEventListener('input', renderPreview);
+
+    addAssumptionBtn.addEventListener('click', () => {
+      addAssumptionField("");
+      syncAssumptionSelect();
+      renderPreview();
+    });
+
+    addAltRealityBtn.addEventListener('click', () => {
+      addAltRealityField("");
+      renderPreview();
+    });
+
+    assumptionSelectEl.addEventListener('change', renderPreview);
+
+    loadFromSentenceMachineBtn.addEventListener('click', () => {
+      openSourceModal();
+    });
+
+    saveBtn.addEventListener('click', () => {
+      const data = collectForm();
+      if (!data) return;
+      punchlines.push(data);
+      saveToStorage();
+      renderOverview();
+      clearForm();
+    });
+
+    clearBtn.addEventListener('click', () => {
+      clearForm();
+    });
+
+    exportBtn.addEventListener('click', () => {
+      exportArea.value = punchlines.map(toExportBlock).join("\n---\n\n");
+      exportArea.style.display = "block";
+      exportArea.select();
+    });
+
+    deleteAllBtn.addEventListener('click', () => {
+      if (!confirm("Slet alle punchline flows?")) return;
+      punchlines = [];
+      saveToStorage();
+      renderOverview();
+    });
+
+    viewModalClose.addEventListener('click', () => {
+      viewModalBackdrop.style.display = "none";
+    });
+    viewModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === viewModalBackdrop) viewModalBackdrop.style.display = "none";
+    });
+
+    sourceModalClose.addEventListener('click', () => {
+      sourceModalBackdrop.style.display = "none";
+    });
+    sourceModalBackdrop.addEventListener('click', (e) => {
+      if (e.target === sourceModalBackdrop) sourceModalBackdrop.style.display = "none";
+    });
+
+    function ensureAtLeastOneAssumption() {
+      if (!assumptionsListEl.children.length) {
+        addAssumptionField("");
+      }
+    }
+
+    function addAssumptionField(value) {
+      const row = document.createElement('div');
+      row.className = "inline-row";
+      const inp = document.createElement('input');
+      inp.type = "text";
+      inp.value = value || "";
+      inp.placeholder = "fx Har høretelefoner på";
+      inp.addEventListener('input', () => {
+        syncAssumptionSelect();
+        renderPreview();
+      });
+      const btn = document.createElement('button');
+      btn.className = "remove-btn";
+      btn.type = "button";
+      btn.textContent = "×";
+      btn.addEventListener('click', () => {
+        row.remove();
+        syncAssumptionSelect();
+        renderPreview();
+        ensureAtLeastOneAssumption();
+      });
+      row.appendChild(inp);
+      row.appendChild(btn);
+      assumptionsListEl.appendChild(row);
+    }
+
+    function ensureAtLeastOneAltReality() {
+      if (!altRealityListEl.children.length) {
+        addAltRealityField("");
+      }
+    }
+
+    function addAltRealityField(value) {
+      const row = document.createElement('div');
+      row.className = "inline-row";
+      const inp = document.createElement('input');
+      inp.type = "text";
+      inp.value = value || "";
+      inp.placeholder = "fx Jeg løber med soundboks";
+      inp.addEventListener('input', renderPreview);
+      const btn = document.createElement('button');
+      btn.className = "remove-btn";
+      btn.type = "button";
+      btn.textContent = "×";
+      btn.addEventListener('click', () => {
+        row.remove();
+        renderPreview();
+        ensureAtLeastOneAltReality();
+      });
+      row.appendChild(inp);
+      row.appendChild(btn);
+      altRealityListEl.appendChild(row);
+    }
+
+    function syncAssumptionSelect() {
+      const assumptions = getAssumptions();
+      assumptionSelectEl.innerHTML = '<option value="">(vælg en af dine antagelser)</option>';
+      assumptions.forEach((a, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx.toString();
+        opt.textContent = a;
+        assumptionSelectEl.appendChild(opt);
+      });
+    }
+
+    function getAssumptions() {
+      const arr = [];
+      assumptionsListEl.querySelectorAll('input[type="text"]').forEach(inp => {
+        const v = inp.value.trim();
+        if (v) arr.push(v);
+      });
+      return arr;
+    }
+
+    function getAltRealities() {
+      const arr = [];
+      altRealityListEl.querySelectorAll('input[type="text"]').forEach(inp => {
+        const v = inp.value.trim();
+        if (v) arr.push(v);
+      });
+      return arr;
+    }
+
+    function collectForm() {
+      const sentence = baseSentenceEl.value.trim();
+      const assumptions = getAssumptions();
+      const chosenIndex = assumptionSelectEl.value;
+      const chosenAssumption = chosenIndex !== "" ? assumptions[parseInt(chosenIndex, 10)] : "";
+      const altRealities = getAltRealities();
+      const punch = punchlineEl.value.trim();
+
+      if (!sentence) {
+        alert("Du skal have en sætning.");
+        return null;
+      }
+
+      return {
+        id: crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now(),
+        sentence,
+        assumptions,
+        chosenAssumption,
+        altRealities,
+        punchline: punch,
+        createdAt: new Date().toISOString()
+      };
+    }
+
+    function renderOverview() {
+      punchOverviewEl.innerHTML = "";
+      if (!punchlines.length) {
+        const p = document.createElement('p');
+        p.textContent = "Ingen punchlines endnu.";
+        p.style.fontSize = ".7rem";
+        p.style.color = "#9ca3af";
+        punchOverviewEl.appendChild(p);
+        return;
+      }
+      punchlines.forEach(pl => {
+        const item = document.createElement('div');
+        item.className = "side-item";
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = "×";
+        delBtn.className = "side-item-delete";
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          punchlines = punchlines.filter(x => x.id !== pl.id);
+          saveToStorage();
+          renderOverview();
+        });
+        item.appendChild(delBtn);
+
+        const title = document.createElement('div');
+        title.className = "side-item-title";
+        title.textContent = pl.sentence;
+
+        const sub = document.createElement('div');
+        sub.className = "side-item-line";
+        sub.textContent = pl.punchline || "(ingen punchline endnu)";
+
+        item.appendChild(title);
+        item.appendChild(sub);
+
+        item.addEventListener('click', () => {
+          showPunchModal(pl);
+        });
+
+        punchOverviewEl.appendChild(item);
+      });
+    }
+
+    function toExportBlock(pl) {
+      return [
+        "Sætning:" + (pl.sentence || ""),
+        "Antagelser omkring virkelighed 1:" + (pl.assumptions && pl.assumptions.length ? pl.assumptions.join(" | ") : ""),
+        "Brudt antagelse:" + (pl.chosenAssumption || ""),
+        "Virkelighed 2 forslag:" + (pl.altRealities && pl.altRealities.length ? pl.altRealities.join(" | ") : ""),
+        "Punchline:" + (pl.punchline || "")
+      ].join("\n");
+    }
+
+    function saveToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(punchlines));
+    }
+
+    function loadFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      try {
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function clearForm() {
+      baseSentenceEl.value = "";
+      assumptionsListEl.innerHTML = "";
+      ensureAtLeastOneAssumption();
+      assumptionSelectEl.innerHTML = '<option value="">(vælg en af dine antagelser)</option>';
+      altRealityListEl.innerHTML = "";
+      ensureAtLeastOneAltReality();
+      punchlineEl.value = "";
+      renderPreview();
+      baseSentenceEl.focus();
+    }
+
+    function renderPreview() {
+      const sentence = baseSentenceEl.value.trim();
+      const assumptions = getAssumptions();
+      const chosenIndex = assumptionSelectEl.value;
+      const chosenAssumption = chosenIndex !== "" ? assumptions[parseInt(chosenIndex, 10)] : "";
+      const altRealities = getAltRealities();
+      const punch = punchlineEl.value.trim();
+
+      if (!sentence && !assumptions.length && !punch) {
+        previewBlock.style.display = "none";
+        previewBlock.innerHTML = "";
+        return;
+      }
+
+      previewBlock.style.display = "block";
+      previewBlock.innerHTML = `
+        <h3>Forhåndsvisning</h3>
+        <p>Sætning: ${sentence || "(tom)"}</p>
+        <p>Antagelser omkring virkelighed 1: ${assumptions.length ? assumptions.join(", ") : "(ingen)"}</p>
+        <p>Brudt antagelse: ${chosenAssumption || "(ingen valgt)"}</p>
+        <p>Virkelighed 2 forslag: ${altRealities.length ? altRealities.join(", ") : "(ingen)"}</p>
+        <p>Punchline: ${punch || "(tom)"}</p>
+      `;
+    }
+
+    function showPunchModal(pl) {
+      viewModalContent.innerHTML = `
+        <div class="modal-row">
+          <div class="modal-label">Sætning</div>
+          <div>${pl.sentence || ""}</div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">Antagelser omkring virkelighed 1</div>
+          <div>${pl.assumptions && pl.assumptions.length ? "<ul>" + pl.assumptions.map(a => "<li>"+a+"</li>").join("") + "</ul>" : "(ingen)"}</div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">Brudt antagelse</div>
+          <div>${pl.chosenAssumption || ""}</div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">Virkelighed 2 forslag</div>
+          <div>${pl.altRealities && pl.altRealities.length ? "<ul>" + pl.altRealities.map(a => "<li>"+a+"</li>").join("") + "</ul>" : "(ingen)"}</div>
+        </div>
+        <div class="modal-row">
+          <div class="modal-label">Punchline</div>
+          <div>${pl.punchline || ""}</div>
+        </div>
+      `;
+      viewModalBackdrop.style.display = "flex";
+    }
+
+    function openSourceModal() {
+      sourceListEl.innerHTML = "";
+      let sentenceData = [];
+      try {
+        const raw = localStorage.getItem("joke-flow-data");
+        if (raw) {
+          const arr = JSON.parse(raw);
+          if (Array.isArray(arr)) sentenceData = arr;
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      if (!sentenceData.length) {
+        const p = document.createElement('p');
+        p.textContent = "Ingen data fundet i 'joke-flow-data'. Lav først nogle sætninger i sætningsmaskinen.";
+        p.style.fontSize = ".7rem";
+        p.style.color = "#9ca3af";
+        sourceListEl.appendChild(p);
+      } else {
+        sentenceData.forEach((item) => {
+          const card = document.createElement('div');
+          card.className = "source-item";
+
+          const title = document.createElement('div');
+          title.className = "source-item-title";
+          title.textContent = (item.mainTopic || "Ukendt") + " → " + (item.subTopic || "Ukendt");
+          card.appendChild(title);
+
+          const finalLine = document.createElement('div');
+          finalLine.innerHTML = 'Sætning til scene: <span class="source-highlight">' + (item.finalSentence || "(tom)") + '</span>';
+          card.appendChild(finalLine);
+
+          const negLine = document.createElement('div');
+          negLine.style.fontSize = ".68rem";
+          negLine.style.color = "#6b7280";
+          negLine.textContent = "Negativ holdning: " + (item.negative || "(tom)");
+          card.appendChild(negLine);
+
+          const btn = document.createElement('button');
+          btn.className = "source-use-btn";
+          btn.textContent = "Brug denne";
+          btn.addEventListener('click', () => {
+            const sentenceCandidate = item.finalSentence && item.finalSentence.trim()
+              ? item.finalSentence.trim()
+              : (item.positiveFlip || item.subTopic || item.mainTopic || "");
+            baseSentenceEl.value = sentenceCandidate;
+
+            // negative holdning → virkelighed 2
+            altRealityListEl.innerHTML = ""; // ryd først
+            if (item.negative && item.negative.trim()) {
+              addAltRealityField(item.negative.trim());
+            } else {
+              addAltRealityField("");
+            }
+
+            renderPreview();
+            sourceModalBackdrop.style.display = "none";
+          });
+          card.appendChild(btn);
+
+          sourceListEl.appendChild(card);
+        });
+      }
+
+      sourceModalBackdrop.style.display = "flex";
+    }
+
+  </script>
+</body>
+</html>
